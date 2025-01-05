@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class Product extends Model
 {
@@ -30,4 +31,27 @@ class Product extends Model
         'id' => 'integer',
         'price' => 'decimal:2',
     ];
+
+    public function getAllProducts()
+    {
+        return $this->all();
+    }
+
+    public function getOneProduct($id)
+    {
+        $product = $this->found($id);
+
+        return $product;
+    }
+
+    private function found($id)
+    {
+        try {
+            $product = $this->findOrFail($id);
+
+            return $product;
+        } catch (ModelNotFoundException) {
+            throw new ModelNotFoundException;
+        }
+    }
 }

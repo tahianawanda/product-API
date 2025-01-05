@@ -14,10 +14,17 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'price' => $this->price,
-            'description' => $this->description,
-            'stock' => $this->stock,
+            'type' => 'products',
+            'attributes' => [
+                'name' => $this->name,
+                'price' => $this->price,
+                'description' => $this->description,
+                'stock' => $this->stock,
+            ],
+            'links' => [
+                'self' => url('/api/products' . $this->resource->getRouteKey())
+            ]
+
         ];
     }
 }

@@ -13,7 +13,13 @@ class ProductCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         return [
-            'data' => $this->collection,
+            'data' => ProductResource::collection($this->collection),
+            'links' => [
+                'self' => route('products.index')
+            ],
+            'meta' => [
+                'articles_count' => $this->collection->count()
+            ]
         ];
     }
 }
