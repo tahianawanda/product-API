@@ -1,0 +1,20 @@
+models:
+  Product:
+    name: string
+    price: decimal:8,2 nullable
+    description: text nullable
+    stock: integer nullable
+    timestamps: true
+
+seeders: Product
+
+factories:
+  Product:
+    name: name
+    price: randomFloat:2,1,100
+    description: text
+    stock: numberBetween:1,100
+
+controllers:
+  Product:
+    resource: api 
