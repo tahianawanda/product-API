@@ -9,12 +9,16 @@ use App\Http\Resources\ProductResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Resources\SuccessResource;
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Illuminate\Validation\ValidationException;
+use App\Traits\HandlesApiExceptions;
 
 class ProductController extends Controller
 {
+    use HandlesApiExceptions;
+
     private Product $product;
 
     public function __construct(Product $product)
@@ -30,30 +34,20 @@ class ProductController extends Controller
 
     public function store(ProductStoreRequest $request)
     {
+        Log::info('Incoming request data: ', $request->all());
+
+        Log::info('Validated data: ', $request->validated());
         try {
             $product = $this->product->storeProduct($request->validated());
             return SuccessResource::make([
                 'message' => 'Product created successfully.',
-                'data' => new ProductResource($product),
+                'data' => $product,
             ])->response()->setStatusCode(201);
-        } catch (ValidationException $e) {
-            $e = [
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors' => ['details' => $e->getMessage()],
-            ];
-            return ErrorResource::make($e)
+        } catch (\Throwable $e) {
+            $exceptionData = $this->handleException($e);
+            return ErrorResource::make($exceptionData['data'])
                 ->response()
-                ->setStatusCode(422);
-        } catch (\Exception $e) {
-            $error = [
-                'success' => false,
-                'message' => 'an unexpected error occurred.',
-                'errors' => ['details' => $e->getMessage()]
-            ];
-            return ErrorResource::make($error)
-                ->response()
-                ->setStatusCode(500);
+                ->setStatusCode($exceptionData['status_code']);
         }
     }
 
@@ -63,15 +57,11 @@ class ProductController extends Controller
         try {
             $product = $this->product->getOneProduct($id);
             return ProductResource::make($product);
-        } catch (ModelNotFoundException $th) {
-            $th = [
-                'success' => false,
-                'message' => 'product not found with the given ID.',
-                'errors' => ['details' => $th->getMessage()],
-            ];
-            return ErrorResource::make($th)
+        } catch (\Throwable $e) {
+            $exceptionData = $this->handleException($e);
+            return ErrorResource::make($exceptionData['data'])
                 ->response()
-                ->setStatusCode(404);
+                ->setStatusCode($exceptionData['status_code']);
         }
     }
 
@@ -82,32 +72,13 @@ class ProductController extends Controller
 
             return SuccessResource::make([
                 'message' => 'Product updated successfully.',
-                'data' => ProductResource::make($product),
+                'data' => $product,
             ])->response()->setStatusCode(200);
-        } catch (BadRequestException $th) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'Bad request error: unable to process the product.',
-                'errors' => ['details' => $th->getMessage()],
-            ])->response()->setStatusCode(400);
-        } catch (ModelNotFoundException $th) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'Product not found with the given ID.',
-                'errors' => ['details' => $th->getMessage()],
-            ])->response()->setStatusCode(404);
-        } catch (\Exception $e) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'An unexpected error occurred.',
-                'errors' => ['details' => $e->getMessage()],
-            ])->response()->setStatusCode(500);
-        } catch (ValidationException $e) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors' => ['details' => $e->getMessage()],
-            ])->response()->setStatusCode(422);
+        } catch (\Throwable $e) {
+            $exceptionData = $this->handleException($e);
+            return ErrorResource::make($exceptionData['data'])
+                ->response()
+                ->setStatusCode($exceptionData['status_code']);
         }
     }
 
@@ -119,19 +90,13 @@ class ProductController extends Controller
 
             return SuccessResource::make([
                 'message' => 'The resource has been successfully eliminated.',
-                'data' => ProductResource::make($product)
+                'data' => $product,
             ])->response()->setStatusCode(200);
-        } catch (BadRequestException $th) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'Bad Request',
-                'errors' => ['details' => $th->getMessage()],
-            ])->response()->setStatusCode(400);
-        } catch (ModelNotFoundException $th) {
-            return ErrorResource::make([
-                'success' => false,
-                'message' => 'Product not found.',
-            ])->response()->setStatusCode(404);
+        } catch (\Throwable $e) {
+            $exceptionData = $this->handleException($e);
+            return ErrorResource::make($exceptionData['data'])
+                ->response()
+                ->setStatusCode($exceptionData['status_code']);
         }
     }
 }

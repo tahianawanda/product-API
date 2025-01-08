@@ -1,0 +1,1 @@
+Si no quieres depender de un archivo físico, puedes usar el método tmpfile() de PHP para generar un archivo temporal en la prueba. Aquí hay una forma de hacerlo:

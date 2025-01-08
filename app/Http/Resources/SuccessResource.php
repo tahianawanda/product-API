@@ -16,7 +16,7 @@ class SuccessResource extends JsonResource
     {
         return [
             'message' => $this->resource['message'],
-            'data' => $this->resource['data'],
+            'data' => ProductResource::make($this->resource['data']),
         ];
     }
 }

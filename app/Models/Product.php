@@ -57,13 +57,13 @@ class Product extends Model
         }
     }
 
-    public function storeProduct(Request $request)
+    public function storeProduct(array $data)
     {
         $product = new Product([
-            'name' => $request->name,
-            'price' => $request->price,
-            'description' => $request->description,
-            'stock' => $request->stock,
+            'name' => $data['name'],
+            'price' => $data['price'] ?? null,
+            'description' => $data['description'] ?? null,
+            'stock' => $data['stock'] ?? null,
         ]);
 
         $product->save();
@@ -71,13 +71,13 @@ class Product extends Model
         return $product;
     }
 
-    public function updateProduct(Request $request, $id)
+    public function updateProduct(array $data, $id)
     {
         $product = $this->found($id);
 
-        $product->update($request->only([
-            'name', 'price', 'description', 'stock'
-        ]));
+        $filteredData = array_filter($data, fn($value) => !is_null($value));
+
+        $product->update($filteredData);
 
         return $product;
     }
