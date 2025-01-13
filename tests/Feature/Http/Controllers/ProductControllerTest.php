@@ -14,7 +14,7 @@ class ProductControllerTest extends TestCase
     public function testReturnsAListOfProducts()
     {
         // Crear productos de prueba
-        Product::factory()->count(5)->create();
+        Product::factory()->count(2)->create();
 
         // Realizar una solicitud GET para obtener los productos
         $response = $this->getJson(route('products.index'));
@@ -25,51 +25,68 @@ class ProductControllerTest extends TestCase
         // Verificar la estructura de la respuesta
         $response->assertJsonStructure([
             'data' => [
-                '*' => ['id', 'name', 'price', 'created_at', 'updated_at'],
+                '*' => [ // Asterisco para verificar la estructura de cada elemento del array
+                    'id',
+                    'type',
+                    'attributes' => [
+                        'name',
+                        'price',
+                        'description',
+                        'stock',
+                    ],
+                    'links' => [
+                        'self',
+                    ],
+                ],
+            ],
+            'links' => [
+                'self',
+            ],
+            'meta' => [
+                'articles_count',
             ],
         ]);
     }
 
-    // Test para store (Crear un nuevo producto)
-    public function testCreatesANewProductSuccessfully()
+
+    public function testNewProductSuccessfully()
     {
-        // Datos válidos para la creación de un producto
+        // Datos válidos 
         $data = [
             'name' => 'New Product',
             'price' => 100.0,
         ];
-
-        // Realizar la solicitud POST para crear el producto
+        // Realizar la solicitud 
         $response = $this->postJson(route('products.store'), $data);
-
-        // Verificar que la respuesta sea un código 201 (creación exitosa)
+        // Verificar 
         $response->assertStatus(201);
-
-        // Verificar que los datos del producto estén presentes en la respuesta
-        $response->assertJsonFragment([
-            'name' => 'New Product',
-            'price' => 100.0,
+        // Extraer los datos
+        $createdProduct = $response->json('data');
+        // Verificar si coinciden
+        $this->assertEquals($data['name'], $createdProduct['attributes']['name']);
+        $this->assertEquals($data['price'], $createdProduct['attributes']['price']);
+        // Verificar que el producto existe
+        $this->assertDatabaseHas('products', [
+            'id' => $createdProduct['id'],
+            'name' => $data['name'],
+            'price' => $data['price'],
         ]);
     }
 
     // Test para store con error de validación
-    public function testReturnsAnErrorWhenValidationFailsDuringProductCreation()
+    public function testWhenValidationFails()
     {
         // Datos inválidos (sin nombre)
         $data = [
             'price' => 100.0,
         ];
 
-        // Realizar la solicitud POST para crear el producto
         $response = $this->postJson(route('products.store'), $data);
 
-        // Verificar que la respuesta sea un código 422 (error de validación)
         $response->assertStatus(422);
 
-        // Verificar que la respuesta contenga los errores de validación
         $response->assertJson([
-            'success' => false,
-            'message' => 'An error occurred.',
+            'message' => 'The name field is required.',
             'errors' => [
                 'name' => ['The name field is required.'],
             ],
@@ -101,18 +118,17 @@ class ProductControllerTest extends TestCase
         // ID de un producto que no existe
         $nonExistentProductId = 999;
 
-        // Realizar la solicitud GET para obtener el producto
         $response = $this->getJson(route('products.show', $nonExistentProductId));
 
-        // Verificar que la respuesta sea un error con código 404
         $response->assertStatus(404);
 
-        // Verificar que la respuesta contenga el formato de error adecuado
         $response->assertJson([
-            'success' => false,
-            'message' => 'An error occurred.',
-            'errors' => [
-                'details' => 'Product not found.',
+            'data' => [
+                'success' => false,
+                'message' => 'Resource not found.',
+                'errors' => [
+                    'details' => 'No additional error details are available.',
+                ],
             ],
         ]);
     }
@@ -120,7 +136,6 @@ class ProductControllerTest extends TestCase
     // Test para update (Actualizar un producto existente)
     public function testUpdatesAnExistingProductSuccessfully()
     {
-        // Crear un producto de prueba
         $product = Product::factory()->create();
 
         // Datos de actualización para el producto
@@ -135,10 +150,25 @@ class ProductControllerTest extends TestCase
         // Verificar que la respuesta sea un código 200
         $response->assertStatus(200);
 
+        // Refrescar el modelo para obtener los valores actualizados
+        $product->refresh();
+
         // Verificar que los datos actualizados estén presentes en la respuesta
-        $response->assertJsonFragment([
-            'name' => 'Updated Product',
-            'price' => 150.0,
+        $response->assertJson([
+            'message' => 'Product updated successfully.',
+            'data' => [
+                'id' => $product->getRouteKey(),
+                'type' => 'products',
+                'attributes' => [
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'description' => $product->description,
+                    'stock' => $product->stock,
+                ],
+                'links' => [
+                    'self' => route('products.show', $product),
+                ],
+            ],
         ]);
     }
 
@@ -162,11 +192,13 @@ class ProductControllerTest extends TestCase
 
         // Verificar que la respuesta contenga el formato de error adecuado
         $response->assertJson([
-            'success' => false,
-            'message' => 'An error occurred.',
-            'errors' => [
-                'details' => 'Product not found.',
-            ],
+            'data' => [
+                'success' => false,
+                'message' => 'Resource not found.',
+                'errors' => [
+                    'details' => 'No additional error details are available.',
+                ],
+            ]
         ]);
     }
 
@@ -189,8 +221,20 @@ class ProductControllerTest extends TestCase
 
         // Verificar el mensaje de éxito
         $response->assertJson([
-            'success' => true,
             'message' => 'The resource has been successfully eliminated.',
+            'data' => [
+                'id' => $product->getRouteKey(),
+                'type' => 'products',
+                'attributes' => [
+                    'name' => $product->name,
+                    'price' => $product->price,
+                    'description' => $product->description,
+                    'stock' => $product->stock,
+                ],
+                'links' => [
+                    'self' => route('products.show', $product),
+                ],
+            ],
         ]);
     }
 
@@ -208,11 +252,13 @@ class ProductControllerTest extends TestCase
 
         // Verificar que la respuesta contenga el formato de error adecuado
         $response->assertJson([
-            'success' => false,
-            'message' => 'An error occurred.',
-            'errors' => [
-                'details' => 'Product not found.',
-            ],
+            'data' => [
+                'success' => false,
+                'message' => 'Resource not found.',
+                'errors' => [
+                    'details' => 'No additional error details are available.',
+                ],
+            ]
         ]);
     }
 }

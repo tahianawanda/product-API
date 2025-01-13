@@ -22,7 +22,7 @@ class ProductResource extends JsonResource
                 'stock' => $this->stock,
             ],
             'links' => [
-                'self' => url('/api/products' . $this->resource->getRouteKey())
+                'self' => url('/api/products/' . $this->resource->getRouteKey())
             ]
 
         ];

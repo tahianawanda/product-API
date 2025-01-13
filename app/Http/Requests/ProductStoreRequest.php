@@ -20,8 +20,8 @@ class ProductStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'not_in:'.implode(',', ['file'])],
-            'price' => ['nullable', 'numeric', 'between:-999999.99,999999.99'],
+            'name' => ['required', 'string', 'max:255'],
+            'price' => ['nullable', 'integer', 'between:0,999999.99'],
             'description' => ['nullable', 'string'],
             'stock' => ['nullable', 'integer'],
         ];
